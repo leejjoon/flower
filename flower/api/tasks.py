@@ -321,6 +321,54 @@ Get a task result
         self.write(response)
 
 
+class TaskResult2(BaseTaskHandler):
+    @web.authenticated
+    def get(self, taskid):
+        """
+Get a task result
+
+**Example request**:
+
+.. sourcecode:: http
+
+  GET /api/task/result2/c60be250-fe52-48df-befb-ac66174076e6 HTTP/1.1
+  Host: localhost:5555
+
+**Example response**:
+
+.. sourcecode:: http
+
+  HTTP/1.1 200 OK
+  Content-Length: 84
+  Content-Type: application/json; charset=UTF-8
+
+  {
+      "result": 3,
+      "state": "SUCCESS",
+      "task-id": "c60be250-fe52-48df-befb-ac66174076e6"
+  }
+
+:query timeout: how long to wait, in seconds, before the operation times out
+:reqheader Authorization: optional OAuth token to authenticate
+:statuscode 200: no error
+:statuscode 401: unauthorized request
+:statuscode 503: result backend is not configured
+        """
+
+        app = self.application
+
+        task = tasks.get_task_by_id(app.events, taskid)
+        state = task.info(["state"])["state"]
+
+        response = {'task-id': taskid, "state": state}
+        if state == states.FAILURE:
+            response.update({'result': self.safe_result(task.result),
+                             'traceback': task.traceback})
+        else:
+            response.update({'result': self.safe_result(task.result)})
+        self.write(response)
+
+
 class TaskAbort(BaseTaskHandler):
     @web.authenticated
     def post(self, taskid):
